@@ -158,6 +158,52 @@ if ($data) {
 
 ---
 
+## Novo Arquivo: anfiretester.php
+
+O arquivo `anfiretester.php` é um utilitário complementar desenvolvido para realizar testes unitários e de integração nos endpoints da API. Ele verifica se as respostas da API estão no formato esperado e se os parâmetros fornecidos são processados corretamente.
+
+### Funcionalidades Principais
+
+- Verifica a conformidade das respostas da API.
+- Testa cenários de uso comuns e limites, como:
+  - Respostas para slugs inválidos.
+  - Comportamento quando parâmetros obrigatórios estão ausentes.
+- Exibe resultados dos testes diretamente no navegador.
+
+### Uso
+
+Para usar o `anfiretester.php`, acesse o arquivo via navegador web. Certifique-se de que o servidor esteja configurado corretamente e que o arquivo esteja localizado na raiz ou em um diretório acessível.
+
+---
+
+## Atualização: Exemplo de Uso com PHP
+
+A API aceita apenas requisições do tipo `GET` e não pode ser acessada diretamente pelo navegador sem parâmetros válidos. Certifique-se de configurar e consumir a API programaticamente.
+
+### Exemplo Atualizado: Testando com PHP
+
+```php
+$url = "https://seu-dominio.com/api.php";
+$params = http_build_query(['anime_slug' => 'spy-x-family-season-2-dublado']);
+$response = file_get_contents("{$url}?{$params}");
+$data = json_decode($response, true);
+
+if ($data) {
+    echo "Anime Slug: " . $data['anime_slug'] . "\n";
+    foreach ($data['episodes'] as $episode) {
+        echo "Episódio: " . $episode['episode'] . "\n";
+        foreach ($episode['data'] as $info) {
+            echo "  URL: " . $info['url'] . "\n";
+            echo "  Resolução: " . $info['resolution'] . "\n";
+            echo "  Status: " . $info['status'] . "\n";
+        }
+    }
+}
+```
+---
+
 ## Contribuição
 
 Contribuições são bem-vindas! Sinta-se à vontade para abrir issues ou enviar pull requests no repositório do GitHub.
+
+
