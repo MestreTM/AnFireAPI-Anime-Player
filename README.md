@@ -101,84 +101,9 @@ Certifique-se de que o domínio do host esteja configurado corretamente para que
 
 ---
 
-## Exemplo de Uso com PHP
-
-### Testando a API com `anime_slug`
-
-```php
-$url = "https://seu-dominio.com/api.php?anime_slug=spy-x-family-season-2-dublado";
-$response = file_get_contents($url);
-$data = json_decode($response, true);
-
-if ($data) {
-    echo "Anime Slug: " . $data['anime_slug'] . "\n";
-    foreach ($data['episodes'] as $episode) {
-        echo "Episódio: " . $episode['episode'] . "\n";
-        foreach ($episode['data'] as $info) {
-            echo "  URL: " . $info['url'] . "\n";
-            echo "  Resolução: " . $info['resolution'] . "\n";
-            echo "  Status: " . $info['status'] . "\n";
-        }
-    }
-}
-```
-
-### Testando a API com `anime_link`
-
-```php
-$url = "https://seu-dominio.com/api.php?anime_link=https://animefire.plus/animes/spy-x-family-season-2-dublado-todos-os-episodios";
-$response = file_get_contents($url);
-$data = json_decode($response, true);
-
-if ($data) {
-    echo "Anime Slug: " . $data['anime_slug'] . "\n";
-    foreach ($data['episodes'] as $episode) {
-        echo "Episódio: " . $episode['episode'] . "\n";
-        foreach ($episode['data'] as $info) {
-            echo "  URL: " . $info['url'] . "\n";
-            echo "  Resolução: " . $info['resolution'] . "\n";
-            echo "  Status: " . $info['status'] . "\n";
-        }
-    }
-}
-```
-
----
-
-## Erros Comuns e Como Resolver
-
-### 1. **Erro: `anime_slug or anime_link parameter is required.`**
-   - Certifique-se de passar pelo menos um dos dois parâmetros na URL.
-
-### 2. **Erro: `Unable to extract anime_slug from the provided anime_link.`**
-   - Verifique se o link do anime está correto e acessível.
-
-### 3. **Erro: `Access restricted to a specific host.`**
-   - Ative ou ajuste o domínio permitido na configuração do código.
-
----
-
-## Novo Arquivo: anfiretester.php
-
-O arquivo `anfiretester.php` é um utilitário complementar desenvolvido para realizar testes unitários e de integração nos endpoints da API. Ele verifica se as respostas da API estão no formato esperado e se os parâmetros fornecidos são processados corretamente.
-
-### Funcionalidades Principais
-
-- Verifica a conformidade das respostas da API.
-- Testa cenários de uso comuns e limites, como:
-  - Respostas para slugs inválidos.
-  - Comportamento quando parâmetros obrigatórios estão ausentes.
-- Exibe resultados dos testes diretamente no navegador.
-
-### Uso
-
-Para usar o `anfiretester.php`, acesse o arquivo via navegador web. Certifique-se de que o servidor esteja configurado corretamente e que o arquivo esteja localizado na raiz ou em um diretório acessível.
-
----
-
 ## Atualização: Exemplo de Uso com PHP
 
-A API aceita apenas requisições do tipo `GET` e não pode ser acessada diretamente pelo navegador sem parâmetros válidos. Certifique-se de configurar e consumir a API programaticamente.
+Por segurança a API aceita apenas requisições do tipo `GET` e não pode ser acessada diretamente pelo navegador sem parâmetros válidos. Certifique-se de configurar e consumir a API programaticamente.
 
 ### Exemplo Atualizado: Testando com PHP
 
@@ -200,6 +125,59 @@ if ($data) {
     }
 }
 ```
+
+### Testando a API com `anime_link`
+
+```php
+$url = "https://seu-dominio.com/api.php";
+$params = http_build_query(['anime_link' => 'https://animefire.plus/animes/spy-x-family-season-2-dublado-todos-os-episodios']);
+$response = file_get_contents("{$url}?{$params}");
+$data = json_decode($response, true);
+
+if ($data) {
+    echo "Anime Slug: " . $data['anime_slug'] . "\n";
+    foreach ($data['episodes'] as $episode) {
+        echo "Episódio: " . $episode['episode'] . "\n";
+        foreach ($episode['data'] as $info) {
+            echo "  URL: " . $info['url'] . "\n";
+            echo "  Resolução: " . $info['resolution'] . "\n";
+            echo "  Status: " . $info['status'] . "\n";
+        }
+    }
+}
+```
+
+---
+
+## Novo Arquivo: anfiretester.php
+
+O arquivo `anfiretester.php` é um utilitário complementar desenvolvido para realizar testes unitários e de integração nos endpoints da API. Ele verifica se as respostas da API estão no formato esperado e se os parâmetros fornecidos são processados corretamente.
+
+### Funcionalidades Principais
+
+- Verifica a conformidade das respostas da API.
+- Testa cenários de uso comuns e limites, como:
+  - Respostas para slugs inválidos.
+  - Comportamento quando parâmetros obrigatórios estão ausentes.
+- Exibe resultados dos testes diretamente no navegador.
+
+### Uso
+
+Para usar o `anfiretester.php`, acesse o arquivo via navegador web. Certifique-se de que o servidor esteja configurado corretamente e que o arquivo esteja localizado na raiz ou em um diretório acessível.
+
+---
+
+## Erros Comuns e Como Resolver
+
+### 1. **Erro: `anime_slug or anime_link parameter is required.`**
+   - Certifique-se de passar pelo menos um dos dois parâmetros na URL.
+
+### 2. **Erro: `Unable to extract anime_slug from the provided anime_link.`**
+   - Verifique se o link do anime está correto e acessível.
+
+### 3. **Erro: `Access restricted to a specific host.`**
+   - Ative ou ajuste o domínio permitido na configuração do código.
+
 ---
 
 ## Contribuição
