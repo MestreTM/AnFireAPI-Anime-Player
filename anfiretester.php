@@ -2,23 +2,15 @@
 /*********************************************************************
  *                       AnFire API Tester                           *
  * ----------------------------------------------------------------- *
- * Nome do Projeto: API de Verificação de Episódios de Animes        *
- * Versão: 1.0                                                       *
- * Desenvolvedor: MestreTM                                           *
- * Data de Criação: 28/12/2024                                       *
- * ----------------------------------------------------------------- *
- * FUNÇÃO:                                                           *
- * Arquivo basico em PHP para fazer requisições testes a api.php.    *
- * ----------------------------------------------------------------- *
  * COMO UTILIZAR:                                                    *
  * Github do projeto: https://github.com/MestreTM/AnFireAPI/         *
- * ----------------------------------------------------------------- *
- *                            MESTRETM                               *
  *********************************************************************/
-// 
-// Sistema simples de senha (opcional)
-// Mude para TRUE e altere a senha para utilizar.
-//
+header('Content-Type: text/html; charset=utf-8');
+
+// Defina a chave para enviar junto à chamada da API
+define('API_KEY', 'Minha_API_Key');
+
+// (Opcional) Protege o Tester com senha
 $requirePassword = false;
 $password = '12345'; 
 
@@ -34,60 +26,16 @@ if ($requirePassword) {
             }
         }
         echo '<!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AnFireAPI Tester</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #121212;
-            color: #ffffff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .password-form {
-            background: #1e1e1e;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-            text-align: center;
-            width: 300px;
-        }
-        .password-form input[type="password"] {
-            width: calc(100% - 20px);
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #444;
-            border-radius: 5px;
-            background: #2c2c2c;
-            color: #ffffff;
-        }
-        .password-form button {
-            padding: 10px 15px;
-            background-color: #007bff;
-            border: none;
-            border-radius: 5px;
-            color: #ffffff;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .password-form button:hover {
-            background-color: #0056b3;
-        }
-        .error {
-            color: #ff0000;
-            margin-bottom: 15px;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <form class="password-form" method="POST">
-	    <h1>AnFire Tester</h1>
+        <h1>AnFire Tester</h1>
         <h2>Digite a senha</h2>';
         if (isset($error)) {
             echo '<div class="error">' . $error . '</div>';
@@ -100,15 +48,17 @@ if ($requirePassword) {
         exit;
     }
 }
-//
-// Configuração domínio WEB
-//
+
+// Se o GET tiver anime_slug ou anime_link, chama a API com a chave
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && (isset($_GET['anime_slug']) || isset($_GET['anime_link']))) {
-    $animeParam = isset($_GET['anime_slug']) ? "anime_slug=" . urlencode($_GET['anime_slug']) : "anime_link=" . urlencode($_GET['anime_link']);
+    $animeParam = isset($_GET['anime_slug'])
+        ? 'anime_slug=' . urlencode($_GET['anime_slug'])
+        : 'anime_link=' . urlencode($_GET['anime_link']);
+// ALTERE SUA HOST AQUI
 //
-// Altere aqui para seu domínio web ou localhost.
+    $apiUrl = "https://seusite.com/api.php?api_key=" . urlencode(API_KEY) . "&" . $animeParam;
 //
-	$apiUrl = "http://localhost/api.php?$animeParam";
+//
     $apiResponse = file_get_contents($apiUrl);
     header('Content-Type: application/json');
     echo $apiResponse;
@@ -116,192 +66,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && (isset($_GET['anime_slug']) || isset
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AnFireAPI Tester</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #121212;
-            color: #ffffff;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .title {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-        .form {
-            width: 90%;
-            max-width: 600px;
-            background: #1e1e1e;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-            margin-bottom: 20px;
-        }
-        .form input[type="text"] {
-            width: calc(100% - 24px);
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 1px solid #444;
-            border-radius: 5px;
-            background: #2c2c2c;
-            color: #ffffff;
-            font-size: 16px;
-            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
-        }
-        .form input[type="text"]:focus {
-            outline: none;
-            border-color: #007bff;
-            box-shadow: 0 0 5px #007bff;
-        }
-        .form button {
-            width: 100%;
-            padding: 12px;
-            background-color: #007bff;
-            border: none;
-            border-radius: 5px;
-            color: #ffffff;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        .form button:hover {
-            background-color: #0056b3;
-        }
-        .container {
-            width: 90%;
-            max-width: 600px;
-            background: #1e1e1e;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-            display: none;
-        }
-        .loading {
-            display: none;
-            text-align: center;
-            font-size: 18px;
-            margin-bottom: 20px;
-        }
-        .result {
-            margin-top: 20px;
-        }
-        select {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 20px;
-            background: #2c2c2c;
-            color: #ffffff;
-            border: none;
-            border-radius: 5px;
-            display: none;
-        }
-        .quality-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        .quality-buttons button {
-            padding: 10px 15px;
-            font-size: 14px;
-            border: none;
-            background-color: #007bff;
-            color: #fff;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        .quality-buttons button.selected {
-            background-color: #0056b3;
-        }
-        .json-button {
-            display: none;
-            margin: 20px auto;
-            padding: 10px 15px;
-            font-size: 14px;
-            border: none;
-            background-color: #007bff;
-            color: #fff;
-            border-radius: 5px;
-            cursor: pointer;
-            text-align: center;
-        }
-        .json-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-        }
-        .json-modal .content {
-            background: #1e1e1e;
-            padding: 20px;
-            border-radius: 8px;
-            max-height: 80%;
-            overflow-y: auto;
-            width: 80%;
-            max-width: 600px;
-        }
-        .json-modal .content textarea {
-            width: 100%;
-            height: 300px;
-            font-family: monospace;
-            padding: 10px;
-            border: 1px solid #444;
-            border-radius: 5px;
-            resize: none;
-            background: #2c2c2c;
-            color: #ffffff;
-        }
-        .json-modal .close {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            color: #ffffff;
-            font-size: 24px;
-            cursor: pointer;
-        }
-        video {
-            width: 100%;
-            margin-top: 20px;
-            display: none;
-        }
-        footer {
-            margin-top: auto;
-            text-align: center;
-            padding: 20px;
-            background: #1e1e1e;
-            color: #ffffff;
-            font-size: 14px;
-        }
-        footer a {
-            color: #007bff;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-        }
-        footer a:hover {
-            text-decoration: underline;
-        }
-        footer img {
-            width: 20px;
-            height: 20px;
-            margin-right: 10px;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="title">AnFireAPI Tester</div>
@@ -311,22 +81,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && (isset($_GET['anime_slug']) || isset
         <button type="submit">Buscar</button>
     </form>
 
+    <button id="view-json" style="display: none; background-color: #FFA500; border: none; padding: 10px 20px; border-radius: 5px; color: #ffffff; cursor: pointer; margin: 10px auto;">Ver JSON Cru</button>
+
     <div class="loading" id="loading">Carregando...</div>
 
     <div class="container" id="result-container">
-        <div class="quality-buttons" id="quality-buttons"></div>
-        <select id="episode-select">
-            <option value="">Selecionar...</option>
+        <label for="quality-select">Selecione a qualidade:</label>
+        <select id="quality-select">
+            <option value="">Selecione uma qualidade...</option>
         </select>
-        <video id="video-player" controls></video>
+        <select id="episode-select">
+            <option value="">Selecione um episódio...</option>
+        </select>
+        <p class="warning">Use as playlists em players como VLC.</p>
+        <div class="playlist-buttons">
+            <div style="display: flex; gap: 10px;">
+                <button id="download-episode" disabled>Baixar Episódio Selecionado</button>
+                <button id="generate-single-playlist" disabled>Playlist M3U do Episódio Selecionado</button>
+            </div>
+            <button id="generate-all-playlist" disabled>Playlist M3U com Todos os Episódios</button>
+        </div>
+        <div class="player-container">
+            <h2>Player Direto</h2>
+            <video id="video-player" controls class="video-player" style="display: none;"></video>
+            <p class="warning">Pode não funcionar online devido a CORS.</p>
+        </div>
     </div>
 
-    <button class="json-button" id="json-button">Ver JSON Cru</button>
-
-    <div class="json-modal" id="json-modal">
-        <div class="close" id="close-modal">&times;</div>
-        <div class="content">
+    <div class="json-modal" id="json-modal" style="display: none;">
+        <div class="modal-content">
             <textarea id="json-content" readonly></textarea>
+            <button id="close-json-modal">Fechar</button>
         </div>
     </div>
 
@@ -342,96 +127,137 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && (isset($_GET['anime_slug']) || isset
             const searchForm = document.getElementById('search-form');
             const loading = document.getElementById('loading');
             const resultContainer = document.getElementById('result-container');
-            const qualityButtons = document.getElementById('quality-buttons');
+            const qualitySelect = document.getElementById('quality-select');
             const episodeSelect = document.getElementById('episode-select');
             const videoPlayer = document.getElementById('video-player');
-            const jsonButton = document.getElementById('json-button');
+            const generateAllPlaylistButton = document.getElementById('generate-all-playlist');
+            const generateSinglePlaylistButton = document.getElementById('generate-single-playlist');
+            const downloadEpisodeButton = document.getElementById('download-episode');
+            const viewJsonButton = document.getElementById('view-json');
             const jsonModal = document.getElementById('json-modal');
             const jsonContent = document.getElementById('json-content');
-            const closeModal = document.getElementById('close-modal');
+            const closeJsonModalButton = document.getElementById('close-json-modal');
+
+            let episodesData = [];
+            let fetchedData = {};
+            let selectedQuality = '';
+
+            function updateButtonStates() {
+                const qualitySelected = qualitySelect.value !== '';
+                const episodeSelected = episodeSelect.value !== '';
+                generateAllPlaylistButton.disabled = !qualitySelected;
+                generateSinglePlaylistButton.disabled = !episodeSelected;
+                downloadEpisodeButton.disabled = !episodeSelected;
+                viewJsonButton.disabled = !Object.keys(fetchedData).length;
+                generateAllPlaylistButton.classList.toggle('enabled', qualitySelected);
+                generateSinglePlaylistButton.classList.toggle('enabled', episodeSelected);
+                downloadEpisodeButton.classList.toggle('enabled', episodeSelected);
+                viewJsonButton.style.display = Object.keys(fetchedData).length ? 'inline-block' : 'none';
+            }
 
             searchForm.addEventListener('submit', function (e) {
                 e.preventDefault();
                 const animeInput = document.getElementById('anime-input').value;
                 const paramType = animeInput.startsWith('http') ? 'anime_link' : 'anime_slug';
-
                 loading.style.display = 'block';
                 resultContainer.style.display = 'none';
-                qualityButtons.innerHTML = '';
-                episodeSelect.innerHTML = '<option value="">Selecionar...</option>';
-                episodeSelect.style.display = 'none';
+                qualitySelect.innerHTML = '<option value="">Selecione uma qualidade...</option>';
+                episodeSelect.innerHTML = '<option value="">Selecione um episódio...</option>';
                 videoPlayer.style.display = 'none';
-                videoPlayer.src = '';
-                jsonButton.style.display = 'none';
+                fetchedData = {};
+                updateButtonStates();
 
                 fetch(`?${paramType}=${encodeURIComponent(animeInput)}`)
                     .then(response => response.json())
                     .then(data => {
                         loading.style.display = 'none';
-
+                        fetchedData = data;
                         if (data.episodes) {
                             resultContainer.style.display = 'block';
-                            jsonButton.style.display = 'block';
-                            jsonContent.value = JSON.stringify(data, null, 2);
-
-                            const resolutions = new Set();
-                            data.episodes.forEach(episode => {
-                                episode.data.forEach(info => {
-                                    resolutions.add(info.resolution);
-                                });
+                            episodesData = data.episodes;
+                            const qualities = new Set();
+                            data.episodes.forEach(ep => {
+                                ep.data.forEach(info => qualities.add(info.resolution));
                             });
-
-                            resolutions.forEach(resolution => {
-                                const button = document.createElement('button');
-                                button.textContent = resolution;
-                                button.addEventListener('click', function () {
-                                    document.querySelectorAll('.quality-buttons button').forEach(btn => btn.classList.remove('selected'));
-                                    button.classList.add('selected');
-                                    episodeSelect.innerHTML = '<option value="">Selecionar...</option>';
-                                    episodeSelect.style.display = 'block';
-                                    data.episodes.forEach(episode => {
-                                        const filteredData = episode.data.filter(info => info.resolution === resolution);
-                                        if (filteredData.length > 0) {
-                                            const option = document.createElement('option');
-                                            option.value = filteredData[0].url;
-                                            option.textContent = `Episódio ${episode.episode}`;
-                                            episodeSelect.appendChild(option);
-                                        }
-                                    });
-                                });
-                                qualityButtons.appendChild(button);
+                            qualities.forEach(q => {
+                                const option = document.createElement('option');
+                                option.value = q;
+                                option.textContent = q;
+                                qualitySelect.appendChild(option);
                             });
                         }
+                        updateButtonStates();
                     });
             });
 
-            episodeSelect.addEventListener('change', function () {
-                const selectedUrl = this.value;
-                if (selectedUrl) {
-                    videoPlayer.style.display = 'block';
-                    videoPlayer.src = selectedUrl;
-                } else {
-                    videoPlayer.style.display = 'none';
-                    videoPlayer.src = '';
+            qualitySelect.addEventListener('change', function () {
+                selectedQuality = this.value;
+                episodeSelect.innerHTML = '<option value="">Selecione um episódio...</option>';
+                videoPlayer.style.display = 'none';
+                updateButtonStates();
+                if (selectedQuality) {
+                    episodesData.forEach(ep => {
+                        const filtered = ep.data.filter(i => i.resolution === selectedQuality);
+                        if (filtered.length > 0) {
+                            const option = document.createElement('option');
+                            option.value = JSON.stringify(filtered);
+                            option.textContent = `Episódio ${ep.episode}`;
+                            episodeSelect.appendChild(option);
+                        }
+                    });
                 }
             });
 
-            jsonButton.addEventListener('click', function () {
+            episodeSelect.addEventListener('change', function () {
+                const selectedData = JSON.parse(this.value || '[]');
+                if (selectedData.length > 0) {
+                    videoPlayer.src = selectedData[0].url;
+                    videoPlayer.style.display = 'block';
+                } else {
+                    videoPlayer.style.display = 'none';
+                }
+                updateButtonStates();
+            });
+
+            generateAllPlaylistButton.addEventListener('click', function () {
+                const playlist = episodesData
+                    .flatMap(ep => ep.data.filter(i => i.resolution === selectedQuality))
+                    .map(i => i.url)
+                    .join('\n');
+                const blob = new Blob([playlist], { type: 'text/plain' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'playlist_all.m3u';
+                link.click();
+            });
+
+            generateSinglePlaylistButton.addEventListener('click', function () {
+                const selectedData = JSON.parse(episodeSelect.value || '[]');
+                const playlist = selectedData.map(i => i.url).join('\n');
+                const blob = new Blob([playlist], { type: 'text/plain' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'playlist_single.m3u';
+                link.click();
+            });
+
+            downloadEpisodeButton.addEventListener('click', function () {
+                const selectedData = JSON.parse(episodeSelect.value || '[]');
+                if (selectedData.length > 0) {
+                    const link = document.createElement('a');
+                    link.href = selectedData[0].url;
+                    link.download = `episodio_${selectedQuality}.mp4`;
+                    link.click();
+                }
+            });
+
+            viewJsonButton.addEventListener('click', function () {
+                jsonContent.value = JSON.stringify(fetchedData, null, 2);
                 jsonModal.style.display = 'flex';
             });
 
-            closeModal.addEventListener('click', function () {
+            closeJsonModalButton.addEventListener('click', function () {
                 jsonModal.style.display = 'none';
-            });
-
-            jsonModal.addEventListener('click', function (e) {
-                if (e.target === jsonModal) {
-                    jsonModal.style.display = 'none';
-                }
-            });
-
-            jsonContent.addEventListener('click', function () {
-                this.select();
             });
         });
     </script>
