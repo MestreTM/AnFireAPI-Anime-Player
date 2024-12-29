@@ -62,6 +62,10 @@ Exemplo de resposta:
 
 ## o anfiretester.php
 
+<p align="">
+  <img src="https://i.imgur.com/XHPKWDW.png" width="500" />
+</p>
+
 O `anfiretester.php` é uma interface web para interagir com a API `api.php`.
 
 ### Funcionalidades
@@ -97,6 +101,12 @@ $validApiKey = 'sua-chave-personalizada';
 No arquivo `anfiretester.php`, atualize a constante `API_KEY` para corresponder à chave personalizada:
 ```php
 define('API_KEY', 'sua-chave-personalizada');
+```
+
+### Alteração da host na anfiretester.php
+1. Na linha 59 você deve alterar o padrão para sua host, apontando corretamente para a api
+```php
+  $apiUrl = "https://seusite.com/api.php?api_key=" . urlencode(API_KEY) . "&" . $animeParam;
 ```
 
 ### Proteção com Senha (opicional)
