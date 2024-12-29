@@ -1,189 +1,141 @@
 
-# API de Verificação de Episódios de Animes
+# AnFire API - API de Verificação de Episódios de Animes
 
-Esta API permite buscar informações sobre episódios de animes hospedados no site **AnimeFire**. A API pode testar até 200 episódios para determinar sua disponibilidade e suas respectivas resoluções.
-
----
-
-## Recursos Principais
-
-- **Restringir a API por Host**: Possibilidade de configurar a API para responder apenas a um domínio específico.
-- **Obtenção de Slug Automática**: Extração automática do `anime_slug` a partir de um link completo de anime.
-- **Testar Disponibilidade de Episódios**: Verifica se os episódios estão disponíveis e retorna informações como URL, resolução e status.
-- **JSON Formatado**: Retorno dos dados em formato JSON, legível e sem barras invertidas extras nos links.
+Este projeto consiste em dois componentes principais: `api.php` e `anfiretester.php`. Juntos, eles oferecem uma API para consultar informações sobre episódios de animes e uma interface de teste para interagir com a API.
 
 ---
 
-## Configuração
+## o api.php
 
-No topo do código, você pode configurar as seguintes opções:
+O `api.php` é o backend responsável por processar requisições relacionadas a animes.
 
-```php
-// Configuração para restringir a API a um host específico (opcional)
-$restrictToHost = false; // Defina como true para ativar a restrição
-$allowedHost = 'example.com'; // Substitua pelo host permitido
-```
+### Funcionamento
+- **Chave de API**: O acesso é protegido por uma chave de API definida no código (`$validApiKey`). 
+  - **Altere a Chave padrão para a sua favorita**: `Minha_API_Key`. 
+- **Parâmetros aceitos**:
+  - `anime_slug`: Slug único do anime.
+  - `anime_link`: Link para uma página de anime, do qual o slug será extraído.
 
-- **$restrictToHost**: Define se a API deve responder apenas para um host específico.
-- **$allowedHost**: Caso a restrição esteja ativada, configure aqui o domínio permitido.
+### Exemplo de Uso
+1. Por slug:
+   ```sh
+   curl "https://seusite.com/api.php?api_key=159753&anime_slug=spy-x-family"
+   ```
+2. Por link:
+   ```sh
+   curl "https://seusite.com/api.php?api_key=159753&anime_link=https://animefire.plus/animes/spy-x-family/"
+   ```
 
----
+### Retorno
+A resposta é um JSON contendo:
+- `anime_slug`: O slug do anime consultado.
+- `episodes`: Lista de episódios disponíveis, com informações como URL, resolução e status.
+- `metadata`: Informações adicionais sobre o processamento.
+- `response`: Status da requisição.
 
-## Parâmetros Aceitos
-
-A API aceita os seguintes parâmetros na URL:
-
-- **anime_slug**: O slug único do anime (obrigatório se `anime_link` não for fornecido).
-- **anime_link**: URL completa do anime. A API extrai automaticamente o slug (obrigatório se `anime_slug` não for fornecido).
-
-Se nenhum dos dois parâmetros for passado, a API retornará um erro.
-
----
-
-## Estrutura de Resposta
-
-Exemplo de resposta JSON:
-
+Exemplo de resposta:
 ```json
 {
-    "anime_slug": "spy-x-family-season-2-dublado",
-    "episodes": [
+  "anime_slug": "spy-x-family",
+  "episodes": [
+    {
+      "episode": 1,
+      "data": [
         {
-            "episode": 1,
-            "data": [
-                {
-                    "url": "https://s2.lightspeedst.net/s1/mp4/spy-x-family-season-2-dublado/sd/1.mp4",
-                    "resolution": "360p",
-                    "status": "ONLINE"
-                },
-                {
-                    "url": "https://s2.lightspeedst.net/s1/mp4/spy-x-family-season-2-dublado/hd/1.mp4",
-                    "resolution": "720p",
-                    "status": "ONLINE"
-                }
-            ]
-        },
-        {
-            "episode": 2,
-            "data": []
+          "url": "https://video.animefire.plus/.../ep1.mp4",
+          "resolution": "720p",
+          "status": "ONLINE"
         }
-    ],
-    "metadata": {
-        "op_start": null,
-        "op_end": null
-    },
-    "response": {
-        "status": "200",
-        "text": "OK"
+      ]
     }
+  ],
+  "metadata": {
+    "op_start": null,
+    "op_end": null
+  },
+  "response": {
+    "status": "200",
+    "text": "OK"
+  }
 }
 ```
 
+## o anfiretester.php
+
+O `anfiretester.php` é uma interface web para interagir com a API `api.php`.
+
+### Funcionalidades
+1. **Entrada de Dados**:
+   - Aceita `anime_slug` ou `anime_link` para realizar buscas.
+2. **Exibição de Resultados**:
+   - Mostra episódios disponíveis, suas qualidades e status.
+3. **Interação Avançada**:
+   - Geração de playlists M3U para episódios selecionados ou todos os episódios.
+   - Download direto de episódios.
+   - Reprodução de vídeos no navegador (dependendo de CORS).
+4. **Proteção com Senha** (Opcional):
+   - Pode proteger o acesso ao Tester.
+   - Configure a senha alterando `$password` e ative a proteção com `$requirePassword = true`.
+
+### Exemplo de Uso
+1. Abra o arquivo no navegador.
+2. Insira o slug ou link do anime no campo de entrada.
+3. Clique em "Buscar" para visualizar os resultados.
+
+> [!WARNING]
+> o CORS pode proibir a exibição do vídeo diretamente do seu servidor, e possivelmente só funcionará em localhost.
 ---
 
-## Exemplo de Comandos `curl`
+## Configurações
 
-### Testando com `anime_slug`
-
-```bash
-curl "https://seu-dominio.com/api.php?anime_slug=spy-x-family-season-2-dublado"
-```
-
-### Testando com `anime_link`
-
-```bash
-curl "https://seu-dominio.com/api.php?anime_link=https://animefire.plus/animes/spy-x-family-season-2-dublado-todos-os-episodios"
-```
-
-### Com Restrição de Host (se ativada)
-
-Certifique-se de que o domínio do host esteja configurado corretamente para que a API funcione.
-
----
-
-## Atualização: Exemplo de Uso com PHP
-
-Por segurança a API aceita apenas requisições do tipo `GET` e não pode ser acessada diretamente pelo navegador sem parâmetros válidos. Certifique-se de configurar e consumir a API programaticamente.
-
-### Exemplo Atualizado: Testando com PHP
-
+### Alterando a Chave da API
+No arquivo `api.php`, modifique o valor de `$validApiKey` para a sua chave personalizada:
 ```php
-$url = "https://seu-dominio.com/api.php";
-$params = http_build_query(['anime_slug' => 'spy-x-family-season-2-dublado']);
-$response = file_get_contents("{$url}?{$params}");
-$data = json_decode($response, true);
-
-if ($data) {
-    echo "Anime Slug: " . $data['anime_slug'] . "\n";
-    foreach ($data['episodes'] as $episode) {
-        echo "Episódio: " . $episode['episode'] . "\n";
-        foreach ($episode['data'] as $info) {
-            echo "  URL: " . $info['url'] . "\n";
-            echo "  Resolução: " . $info['resolution'] . "\n";
-            echo "  Status: " . $info['status'] . "\n";
-        }
-    }
-}
+$validApiKey = 'sua-chave-personalizada';
 ```
 
-### Testando a API com `anime_link`
-
+No arquivo `anfiretester.php`, atualize a constante `API_KEY` para corresponder à chave personalizada:
 ```php
-$url = "https://seu-dominio.com/api.php";
-$params = http_build_query(['anime_link' => 'https://animefire.plus/animes/spy-x-family-season-2-dublado-todos-os-episodios']);
-$response = file_get_contents("{$url}?{$params}");
-$data = json_decode($response, true);
-
-if ($data) {
-    echo "Anime Slug: " . $data['anime_slug'] . "\n";
-    foreach ($data['episodes'] as $episode) {
-        echo "Episódio: " . $episode['episode'] . "\n";
-        foreach ($episode['data'] as $info) {
-            echo "  URL: " . $info['url'] . "\n";
-            echo "  Resolução: " . $info['resolution'] . "\n";
-            echo "  Status: " . $info['status'] . "\n";
-        }
-    }
-}
+define('API_KEY', 'sua-chave-personalizada');
 ```
 
----
-
-## Novo Arquivo: anfiretester.php
-
-AVISO: PODE NÃO FUNCIONAR EM PRODUÇÃO POR CONTA DO CORS. USE SOMENTE PARA TESTES EM LOCALHOST!
-
-O arquivo `anfiretester.php` é um utilitário complementar desenvolvido para realizar testes unitários e de integração nos endpoints da API. Ele verifica se as respostas da API estão no formato esperado e se os parâmetros fornecidos são processados corretamente.
-
-### Funcionalidades Principais
-
-- Verifica a conformidade das respostas da API.
-- Testa cenários de uso comuns e limites, como:
-  - Respostas para slugs inválidos.
-  - Comportamento quando parâmetros obrigatórios estão ausentes.
-- Exibe resultados dos testes diretamente no navegador.
-
-### Uso
-
-Para usar o `anfiretester.php`, acesse o arquivo via navegador web. Certifique-se de que o servidor esteja configurado corretamente e que o arquivo esteja localizado na raiz ou em um diretório acessível.
+### Proteção com Senha (opicional)
+1. Altere o valor de `$password` no `anfiretester.php` para definir a senha desejada.
+2. Ative a proteção configurando:
+   ```php
+   $requirePassword = true;
+   ```
 
 ---
 
-## Erros Comuns e Como Resolver
+## Requisitos do Sistema
 
-### 1. **Erro: `anime_slug or anime_link parameter is required.`**
-   - Certifique-se de passar pelo menos um dos dois parâmetros na URL.
+1. **Servidor**:
+   - PHP 7.4 ou superior.
+2. **Extensões Necessárias**:
+   - `DOM`
+   - `file_get_contents` habilitado para acessar URLs externas.
 
-### 2. **Erro: `Unable to extract anime_slug from the provided anime_link.`**
-   - Verifique se o link do anime está correto e acessível.
-
-### 3. **Erro: `Access restricted to a specific host.`**
-   - Ative ou ajuste o domínio permitido na configuração do código.
+3. **Permissões**:
+   - Certifique-se de que os arquivos tenham permissões de leitura adequadas no servidor.
 
 ---
 
-## Contribuição
+## Troubleshooting
 
-Contribuições são bem-vindas! Sinta-se à vontade para abrir issues ou enviar pull requests no repositório do GitHub.
+### Erro 403 - Invalid API Key
+- Certifique-se de que a chave fornecida na URL corresponde à chave definida em `api.php`.
 
+### Problemas com CORS
+- Os vídeos podem ser bloqueados devido a restrições de CORS. Utilize um player offline como VLC para acessar diretamente as URLs.
 
+### Requisições Externas Bloqueadas
+- Confirme que o PHP está configurado para permitir `file_get_contents` com URLs externas.
+
+---
+
+## Licença
+
+Este projeto é open-source. Consulte o [GitHub](https://github.com/MestreTM/AnFireAPI) para mais detalhes.
+
+---
