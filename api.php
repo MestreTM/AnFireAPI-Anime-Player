@@ -8,7 +8,7 @@
 header('Content-Type: application/json');
 
 // Defina a chave que a API espera na query string
-$validApiKey = 'Minha_API_Key';
+$validApiKey = 'SUA_API_AQUI';
 
 // Valida a chave
 if (!isset($_GET['api_key']) || $_GET['api_key'] !== $validApiKey) {
