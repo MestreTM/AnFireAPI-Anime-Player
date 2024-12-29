@@ -151,6 +151,8 @@ if ($data) {
 
 ## Novo Arquivo: anfiretester.php
 
+AVISO: PODE NÃO FUNCIONAR EM PRODUÇÃO POR CONTA DO CORS. USE SOMENTE PARA TESTES EM LOCALHOST!
+
 O arquivo `anfiretester.php` é um utilitário complementar desenvolvido para realizar testes unitários e de integração nos endpoints da API. Ele verifica se as respostas da API estão no formato esperado e se os parâmetros fornecidos são processados corretamente.
 
 ### Funcionalidades Principais
