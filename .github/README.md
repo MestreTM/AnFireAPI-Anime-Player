@@ -21,7 +21,7 @@ Esta API foi desenvolvida para fornecer informações relacionadas a animes. Ela
 **Método**: GET  
 **URL**: `localhost/api.php`  
 **Parâmetros**:
-- `api_key` (Obrigatório): Chave de acesso para autenticação.
+- `api_key` (Obrigatório): Chave de acesso para autenticação. Defina uma chave ou senha de sua escolha. Deve ser igual na `api.php` e no `AnFire_Player.php`
 - `anime_slug` (Opcional): O slug do anime, por exemplo, `bleach-sennen-kessen-hen---soukoku-tan-todos-os-episodios`.
 - `anime_link` (Opcional): Link completo do anime, por exemplo, `https://animefire.plus/animes/kono-subarashii-sekai-ni-shukufuku-wo-3-dublado-todos-os-episodios`.
 
@@ -148,8 +148,8 @@ curl "localhost/api.php?api_key=SUA_API_KEY&anime_link=https://animefire.plus/an
 1. Copie o arquivo `AnFire_Player.php` para o diretório do seu servidor local.
 2. Acesse a URL: `http://localhost/AnFire_Player.php`.
 3. Preencha os seguintes campos:
-   - **API Key**: Sua chave de autenticação.
-   - **Dominio**: Insira corretamente seu `localhost` ou `dominio`.
+   - **API Key**: Defina uma chave ou senha de sua escolha. Deve ser igual na `api.php` e no `AnFire_Player.php`
+   - **Dominio**: Insira corretamente seu `localhost` ou `dominio` (lembre de usar http ou https para as requisições).
 
 
 ## Exemplo de Uso em um projeto PHP
