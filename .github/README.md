@@ -1,146 +1,201 @@
 
 # AnFire API - API de Verificação de Episódios de Animes
+![imagem](https://i.imgur.com/JODpL6c.png)
 
-Este projeto consiste em dois componentes principais: `api.php` e `anfiretester.php`. Juntos, eles oferecem uma API para consultar informações sobre episódios de animes e uma interface de teste para interagir com a API.
+
+Este projeto consiste em dois componentes principais: `api.php` e `AnFire_Player.php`. Basicamente faz uma varredura do site e coleta todas as informações gostosas. Com ele você pode ver animes sem anuncios e com custo zero.
+
+---
+# API Documentation
+
+## Descrição
+Esta API foi desenvolvida para fornecer informações relacionadas a animes. Ela permite buscar informações de animes utilizando parâmetros específicos, como `anime_slug` ou `anime_link`.
 
 ---
 
-## o api.php
+## Endpoints Disponíveis
 
-O `api.php` é o backend responsável por processar requisições relacionadas a animes.
+### Buscar informações de um anime
+**Descrição**: Retorna detalhes de um anime com base no slug ou link fornecido.
 
-### Funcionamento
-- **Chave de API**: O acesso é protegido por uma chave de API definida no código (`$validApiKey`). 
-  - **Altere a Chave padrão para a sua favorita**: `Minha_API_Key`. 
-- **Parâmetros aceitos**:
-  - `anime_slug`: Slug único do anime.
-  - `anime_link`: Link para uma página de anime, do qual o slug será extraído.
+**Método**: GET  
+**URL**: `localhost/api.php`  
+**Parâmetros**:
+- `api_key` (Obrigatório): Chave de acesso para autenticação.
+- `anime_slug` (Opcional): O slug do anime, por exemplo, `bleach-sennen-kessen-hen---soukoku-tan-todos-os-episodios`.
+- `anime_link` (Opcional): Link completo do anime, por exemplo, `https://animefire.plus/animes/kono-subarashii-sekai-ni-shukufuku-wo-3-dublado-todos-os-episodios`.
 
-### Exemplo de Uso
-1. Por slug:
-   ```sh
-   curl "https://seusite.com/api.php?api_key=159753&anime_slug=spy-x-family"
-   ```
-2. Por link:
-   ```sh
-   curl "https://seusite.com/api.php?api_key=159753&anime_link=https://animefire.plus/animes/spy-x-family/"
-   ```
+**Nota**: É obrigatório fornecer ao menos um parâmetro entre `anime_slug` e `anime_link`.
 
-### Retorno
-A resposta é um JSON contendo:
-- `anime_slug`: O slug do anime consultado.
-- `episodes`: Lista de episódios disponíveis, com informações como URL, resolução e status.
-- `metadata`: Informações adicionais sobre o processamento.
-- `response`: Status da requisição.
+---
 
-Exemplo de resposta:
+## Exemplos de Requisições
+
+### Usando `anime_slug`
+```bash
+curl "localhost/api.php?api_key=SUA_API_KEY&anime_slug=bleach-sennen-kessen-hen---soukoku-tan-todos-os-episodios"
+```
+
+### Usando `anime_link`
+```bash
+curl "localhost/api.php?api_key=SUA_API_KEY&anime_link=https://animefire.plus/animes/kono-subarashii-sekai-ni-shukufuku-wo-3-dublado-todos-os-episodios"
+```
+
+---
+
+## Exemplo de Retorno Completo
+
 ```json
 {
-  "anime_slug": "spy-x-family",
-  "episodes": [
-    {
-      "episode": 1,
-      "data": [
+    "anime_slug": "kono-subarashii-sekai-ni-shukufuku-wo-3-dublado",
+    "anime_title": "Kono Subarashii Sekai ni Shukufuku wo! 3",
+    "anime_title1": "KonoSuba: God's Blessing on This Wonderful World! 3",
+    "anime_image": "https://animefire.plus/img/animes/kono-subarashii-sekai-ni-shukufuku-wo-3-large.webp",
+    "anime_info": "A14, Aventura, Comedia, Fantasia",
+    "anime_synopsis": "Kazuma Satou, ex-NEET e atual aventureiro reencarnado, finalmente retorna para casa apos o incidente na vila Crimson Demon. Ele e acompanhado por seus companheiros sempre confiaveis: a deusa egocentrica Aqua,...",
+    "anime_score": "8.37",
+    "anime_votes": "175,442 votos",
+    "youtube_trailer": "https://www.youtube.com/embed/Meo3mO98huE?enablejsapi=1&wmode=opaque&autoplay=1",
+    "episodes": [
         {
-          "url": "https://video.animefire.plus/.../ep1.mp4",
-          "resolution": "720p",
-          "status": "ONLINE"
+            "episode": 1,
+            "data": [
+                {
+                    "url": "https://s2.lightspeedst.net/s2/mp4/kono-subarashii-sekai-ni-shukufuku-wo-3-dublado/sd/1.mp4",
+                    "resolution": "360p",
+                    "status": "ONLINE"
+                }
+            ]
         }
-      ]
+    ],
+    "metadata": {
+        "op_start": null,
+        "op_end": null
+    },
+    "response": {
+        "status": "200",
+        "text": "OK"
     }
-  ],
-  "metadata": {
-    "op_start": null,
-    "op_end": null
-  },
-  "response": {
-    "status": "200",
-    "text": "OK"
-  }
 }
 ```
 
-## o anfiretester.php
-
-<p align="">
-  <img src="https://i.imgur.com/XHPKWDW.png" width="500" />
-</p>
-
-O `anfiretester.php` é uma interface web para interagir com a API `api.php`.
-
-### Funcionalidades
-1. **Entrada de Dados**:
-   - Aceita `anime_slug` ou `anime_link` para realizar buscas.
-2. **Exibição de Resultados**:
-   - Mostra episódios disponíveis, suas qualidades e status.
-3. **Interação Avançada**:
-   - Geração de playlists M3U para episódios selecionados ou todos os episódios.
-   - Download direto de episódios.
-   - Reprodução de vídeos no navegador (dependendo de CORS).
-4. **Proteção com Senha** (Opcional):
-   - Pode proteger o acesso ao Tester.
-   - Configure a senha alterando `$password` e ative a proteção com `$requirePassword = true`.
-
-### Exemplo de Uso
-1. Abra o arquivo no navegador.
-2. Insira o slug ou link do anime no campo de entrada.
-3. Clique em "Buscar" para visualizar os resultados.
-
-> [!WARNING]
-> o CORS pode proibir a exibição do vídeo diretamente do seu servidor, e possivelmente só funcionará em localhost.
 ---
 
-## Configurações
+## Descrição dos Campos
 
-### Alterando a Chave da API
-No arquivo `api.php`, modifique o valor de `$validApiKey` para a sua chave personalizada:
-```php
-$validApiKey = 'sua-chave-personalizada';
-```
+- **anime_slug**: Identificador único do anime em formato slug.
+- **anime_title**: Título principal do anime.
+- **anime_title1**: Título alternativo em inglês.
+- **anime_image**: URL da imagem promocional do anime.
+- **anime_info**: Informações categóricas do anime, como gêneros.
+- **anime_synopsis**: Sinopse detalhada do anime.
+- **anime_score**: Pontuação média do anime.
+- **anime_votes**: Número de votos que compõem a pontuação.
+- **youtube_trailer**: URL do trailer do anime no YouTube.
+- **episodes**: Lista de episódios disponíveis, contendo:
+  - **episode**: Número do episódio.
+  - **data**: Detalhes sobre o episódio, incluindo:
+    - **url**: Link para o vídeo do episódio.
+    - **resolution**: Resolução do vídeo.
+    - **status**: Status do vídeo (ex: ONLINE).
+- **metadata**: Informações adicionais (não preenchidas no exemplo).
+  - **op_start**: Não utilizado.
+  - **op_end**: Não utilizado.
+- **response**: Detalhes da resposta da API.
+  - **status**: Código de status HTTP retornado.
+  - **text**: Mensagem de texto associada ao status.
 
-No arquivo `anfiretester.php`, atualize a constante `API_KEY` para corresponder à chave personalizada:
-```php
-define('API_KEY', 'sua-chave-personalizada');
-```
-
-### Alteração da host na anfiretester.php
-1. Na linha 59 você deve alterar o padrão para sua host, apontando corretamente para a api
-```php
-  $apiUrl = "https://seusite.com/api.php?api_key=" . urlencode(API_KEY) . "&" . $animeParam;
-```
-
-### Proteção com Senha (opicional)
-1. Altere o valor de `$password` no `anfiretester.php` para definir a senha desejada.
-2. Ative a proteção configurando:
-   ```php
-   $requirePassword = true;
-   ```
 
 ---
 
-## Requisitos do Sistema
+---
 
-1. **Servidor**:
-   - PHP 7.4 ou superior.
-2. **Extensões Necessárias**:
-   - `DOM`
-   - `file_get_contents` habilitado para acessar URLs externas.
+# AnFire_Player.php - O front end mais CREMOSO para testes <3
 
-3. **Permissões**:
-   - Certifique-se de que os arquivos tenham permissões de leitura adequadas no servidor.
+### 1. Reprodução de Vídeos
+- Seleção de episódios diretamente na interface.
+- Suporte para múltiplas resoluções (ex: 360p, 720p, 1080p), com base nos dados retornados pela API.
+- Verificação do status dos vídeos (ex: ONLINE).
+
+### 2. Exibição de Detalhes do Anime
+- **Título principal e alternativo**: Exibidos de forma destacada na interface.
+- **Imagem do anime**: Carregada dinamicamente através da URL retornada pela API.
+- **Sinopse**: Apresentação detalhada da descrição do anime.
+- **Informações adicionais**: Exibição de gêneros, pontuação e número de votos.
+
+### 3. Testes com a API
+
+- Na interface você encontrará um botão dedicado para visualizar a requisição completa.
+- Campos de entrada para `api_key`, `anime_slug` e `anime_link`.
+- Exibição dos dados retornados pela API em tempo real.
+- Estrutura simples para validar a resposta e explorar os campos retornados.
 
 ---
 
-## Troubleshooting
+## Requisitos
 
-### Erro 403 - Invalid API Key
-- Certifique-se de que a chave fornecida na URL corresponde à chave definida em `api.php`.
+1. **Servidor Local ou WEB**:
+   - O arquivo deve ser executado em um ambiente que suporte PHP, como XAMPP ou WAMP.
+   - Para WEB você deve deixar privado. Não me responsabilizo legalmente caso faça o uso publico.
+2. **Dependência da API**:
+   - Certifique-se de que o arquivo `api.php` está configurada corretamente.
+   - lembre-se de usar `http` ou `https` para fazer as requisições.
 
-### Problemas com CORS
-- Os vídeos podem ser bloqueados devido a restrições de CORS. Utilize um player offline como VLC para acessar diretamente as URLs.
+---
 
-### Requisições Externas Bloqueadas
-- Confirme que o PHP está configurado para permitir `file_get_contents` com URLs externas.
+## Como Usar
+
+1. Copie o arquivo `AnFire_Player.php` para o diretório do seu servidor local.
+2. Acesse a URL: `http://localhost/AnFire_Player.php`.
+3. Preencha os seguintes campos:
+   - **API Key**: Sua chave de autenticação.
+   - **Dominio**: Insira corretamente seu `localhost` ou `dominio`.
+
+
+## Exemplo de Uso em um projeto PHP
+```php
+<?php
+$apiKey = "SUA_API_KEY";
+$animeSlug = "bleach-sennen-kessen-hen---soukoku-tan-todos-os-episodios";
+
+// Configurando a URL da API
+$url = "http://localhost/api.php?api_key=" . $apiKey . "&anime_slug=" . $animeSlug;
+
+// Realizando a requisição
+$response = file_get_contents($url);
+
+// Decodificando o JSON retornado
+$data = json_decode($response, true);
+
+// Exibindo os dados
+if ($data) {
+    echo "Título do Anime: " . $data['title'] . "\n";
+    echo "Descrição: " . $data['description'] . "\n";
+} else {
+    echo "Falha ao obter dados do anime.";
+}
+?>
+```
+
+---
+
+## Erros Comuns
+
+### 1. Falta de `api_key`
+- **Descrição**: Quando o parâmetro `api_key` não é fornecido.
+- **Mensagem**: `{"error": "API Key is required"}`
+
+### 2. Parâmetros inválidos ou vazio
+- **Descrição**: Nenhum parâmetro válido fornecido (`anime_slug` ou `anime_link`).
+- **Mensagem**: `{"error": "At least one parameter (anime_slug or anime_link) is required"}`
+
+---
+
+## Dependências e Configuração
+
+1. Certifique-se de que o servidor web (como Apache ou Nginx) está configurado para executar arquivos PHP.
+2. O arquivo `api.php` deve estar acessível no diretório raiz do servidor.
+3. Mesmo rodando em localhost, utilize o protocolo http:// para fazer as requisições.
 
 ---
 
