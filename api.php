@@ -103,27 +103,30 @@ $youtubeTrailer = null;
 
 function getApiResponse(array $params, bool $useCache, bool $force): array
 {
-    $pdo = getDatabaseConnection();
-    createCacheTableIfNotExists($pdo); 
-    
-    $animeSlug = $params['anime_slug'] ?? null;
-    $animeLink = $params['anime_link'] ?? null;
-
     if ($useCache && !$force) {
+        $pdo = getDatabaseConnection();
+        createCacheTableIfNotExists($pdo);
+
+        $animeSlug = $params['anime_slug'] ?? null;
+        $animeLink = $params['anime_link'] ?? null;
+
         $cachedResponse = getCachedResponse($pdo, $animeSlug, $animeLink);
         if ($cachedResponse) {
             return json_decode($cachedResponse, true);
         }
     }
 
+    // Processa a solicitação diretamente, sem cache
     $response = processApiRequest($params);
 
     if ($useCache && !isset($response['error'])) {
-        storeCacheResponse($pdo, $animeSlug, $animeLink, json_encode($response));
+        $pdo = getDatabaseConnection();
+        storeCacheResponse($pdo, $params['anime_slug'] ?? null, $params['anime_link'] ?? null, json_encode($response));
     }
 
     return $response;
 }
+
 
 function getCachedResponse(PDO $pdo, ?string $animeSlug, ?string $animeLink): ?string
 {
