@@ -1,6 +1,6 @@
 
 # AnFire API - API de Verificação de Episódios de Animes
-![imagem](https://i.imgur.com/JODpL6c.png)
+![imagem](https://i.imgur.com/YFFnp7E.png)
 
 
 Este projeto consiste em dois componentes principais: `api.php` e `AnFire_Player.php`. Basicamente faz uma varredura do site e coleta todas as informações gostosas. Com ele você pode ver animes sem anuncios e com custo zero.
@@ -111,6 +111,7 @@ curl "localhost/api.php?api_key=SUA_API_KEY&anime_link=https://animefire.plus/an
 ---
 
 # AnFire_Player.php - O front end mais CREMOSO para testes <3
+![imagem](https://i.imgur.com/JODpL6c.png)
 
 ### 1. Reprodução de Vídeos
 - Seleção de episódios diretamente na interface.
