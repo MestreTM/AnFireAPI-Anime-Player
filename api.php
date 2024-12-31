@@ -5,36 +5,92 @@
  * COMO UTILIZAR:                                                    *
  * Github do projeto: https://github.com/MestreTM/AnFireAPI/         *
  *********************************************************************/
- 
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 header('Content-Type: application/json');
 
-// Defina a chave que a API espera na query string
-$validApiKey = 'SUA_API_AQUI';
+// Configurações do Banco de Dados e Cache
+define('DB_HOST', 'localhost');
+define('DB_NAME', '');
+define('DB_USER', '');
+define('DB_PASS', '');
 
-// Valida a chave
-if (!isset($_GET['api_key']) || $_GET['api_key'] !== $validApiKey) {
-    http_response_code(403);
-    echo json_encode(['error' => 'Invalid or missing API Key.']);
-    exit;
-}
+define('USE_CACHE', false);       // Habilita ou desabilita o uso de cache (BANCO DE DADOS)
 
-// Se não houver anime_slug ou anime_link, retorna erro
-if (!isset($_GET['anime_slug']) && !isset($_GET['anime_link'])) {
-    echo json_encode(['error' => 'anime_slug or anime_link parameter is required.']);
-    exit;
-}
+// Configuração da API Key
+define('API_KEY', 'SUA_API_AQUI');     
 
-// Valida o formato do link
-if (isset($_GET['anime_link'])) {
-    $animeLink = $_GET['anime_link'];
-    if (!preg_match('#^https://animefire\.plus/animes/.+#', $animeLink)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid anime_link format. The link must match "https://animefire.plus/animes/*"']);
+
+ // Estabelece a conexão com o banco de dados usando PDO.
+
+function getDatabaseConnection(): PDO
+{
+    $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8mb4';
+    try {
+        $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]);
+        return $pdo;
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Falha na conexão com o banco de dados: ' . $e->getMessage()]);
         exit;
     }
 }
 
-// Obtém slug diretamente ou extrai de um link
+ // Cria a tabela 'api_cache' se ela não existir.
+
+function createCacheTableIfNotExists(PDO $pdo): void
+{
+    $sql = "
+    CREATE TABLE IF NOT EXISTS `api_cache` (
+        `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `anime_slug` VARCHAR(255) DEFAULT NULL,
+        `anime_link` VARCHAR(512) DEFAULT NULL,
+        `response` LONGTEXT NOT NULL,
+        `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`),
+        INDEX `idx_anime_slug` (`anime_slug`),
+        INDEX `idx_anime_link` (`anime_link`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ";
+    
+    try {
+        $pdo->exec($sql);
+    } catch (PDOException $e) {
+        http_response_code(500);
+        echo json_encode(['error' => 'Falha ao criar a tabela api_cache: ' . $e->getMessage()]);
+        exit;
+    }
+}
+
+if (!isset($_GET['api_key']) || $_GET['api_key'] !== API_KEY) {
+    http_response_code(403);
+    echo json_encode(['error' => 'API Key inválida ou ausente.']);
+    exit;
+}
+
+if (!isset($_GET['anime_slug']) && !isset($_GET['anime_link'])) {
+    echo json_encode(['error' => 'Parâmetro anime_slug ou anime_link é obrigatório.']);
+    exit;
+}
+
+if (isset($_GET['anime_link'])) {
+    $animeLink = $_GET['anime_link'];
+    if (!preg_match('#^https://animefire\.plus/animes/.+#', $animeLink)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Formato inválido para anime_link. Deve ser "https://animefire.plus/animes/*"']);
+        exit;
+    }
+}
+
+// Obtém o parâmetro 'force', padrão para false. Isto faz a api buscar e regravar os dados mesmo já existindo no banco de dados.
+
+$force = isset($_GET['force']) ? filter_var($_GET['force'], FILTER_VALIDATE_BOOLEAN) : false;
+
 $animeSlug = $_GET['anime_slug'] ?? null;
 $animeTitle = null;
 $animeTitle1 = null;
@@ -45,82 +101,148 @@ $animeScore = null;
 $animeVotes = null;
 $youtubeTrailer = null;
 
-if (!$animeSlug && isset($_GET['anime_link'])) {
-    $animeLink = $_GET['anime_link'];
-    $animeSlug = fetchAnimeSlug($animeLink);
-    $animeTitle = cleanText(fetchAnimeTitle($animeLink));
-    $animeTitle1 = cleanText(fetchAnimeTitle1($animeLink));
-    $animeImage = fetchAnimeImage($animeLink);
-    $animeInfo = cleanText(fetchAnimeInfo($animeLink));
-    $animeSynopsis = cleanText(fetchAnimeSynopsis($animeLink));
-    $animeScore = fetchAnimeScore($animeLink);
-    $animeVotes = fetchAnimeVotes($animeLink);
-    $youtubeTrailer = fetchYoutubeTrailer($animeLink);
+function getApiResponse(array $params, bool $useCache, bool $force): array
+{
+    $pdo = getDatabaseConnection();
+    createCacheTableIfNotExists($pdo); 
+    
+    $animeSlug = $params['anime_slug'] ?? null;
+    $animeLink = $params['anime_link'] ?? null;
 
-    if (!$animeSlug) {
-        echo json_encode(['error' => 'Unable to extract anime_slug from anime_link.']);
-        exit;
+    if ($useCache && !$force) {
+        $cachedResponse = getCachedResponse($pdo, $animeSlug, $animeLink);
+        if ($cachedResponse) {
+            return json_decode($cachedResponse, true);
+        }
+    }
+
+    $response = processApiRequest($params);
+
+    if ($useCache && !isset($response['error'])) {
+        storeCacheResponse($pdo, $animeSlug, $animeLink, json_encode($response));
+    }
+
+    return $response;
+}
+
+function getCachedResponse(PDO $pdo, ?string $animeSlug, ?string $animeLink): ?string
+{
+    try {
+        $sql = "SELECT response FROM api_cache WHERE anime_slug = :anime_slug OR anime_link = :anime_link LIMIT 1";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            ':anime_slug' => $animeSlug,
+            ':anime_link' => $animeLink,
+        ]);
+        $result = $stmt->fetch();
+        return $result ? $result['response'] : null;
+    } catch (Exception $e) {
+        error_log('Erro ao obter resposta do cache: ' . $e->getMessage());
+        return null;
     }
 }
 
-// Executa a verificação
-$episodes = testEpisodes($animeSlug);
+function storeCacheResponse(PDO $pdo, ?string $animeSlug, ?string $animeLink, string $response): void
+{
+    try {
+        $sql = "SELECT id FROM api_cache WHERE anime_slug = :anime_slug OR anime_link = :anime_link LIMIT 1";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            ':anime_slug' => $animeSlug,
+            ':anime_link' => $animeLink,
+        ]);
+        $existing = $stmt->fetch();
 
-$response = [
-    'anime_slug' => $animeSlug,
+        if ($existing) {
+            $updateSql = "UPDATE api_cache SET response = :response, updated_at = NOW() WHERE id = :id";
+            $updateStmt = $pdo->prepare($updateSql);
+            $updateStmt->execute([
+                ':response' => $response,
+                ':id' => $existing['id'],
+            ]);
+        } else {
+            $insertSql = "INSERT INTO api_cache (anime_slug, anime_link, response, created_at, updated_at) VALUES (:anime_slug, :anime_link, :response, NOW(), NOW())";
+            $insertStmt = $pdo->prepare($insertSql);
+            $insertStmt->execute([
+                ':anime_slug' => $animeSlug,
+                ':anime_link' => $animeLink,
+                ':response' => $response,
+            ]);
+        }
+    } catch (Exception $e) {
+        error_log('Erro ao armazenar resposta no cache: ' . $e->getMessage());
+    }
+}
 
-    'anime_title' => $animeTitle,
+function processApiRequest(array $params): array
+{
+    $animeSlug = $params['anime_slug'] ?? null;
+    $animeLink = $params['anime_link'] ?? null;
 
-    'anime_title1' => $animeTitle1,
+    global $animeTitle, $animeTitle1, $animeImage, $animeInfo, $animeSynopsis, $animeScore, $animeVotes, $youtubeTrailer;
 
-    'anime_image' => $animeImage,
+    if (!$animeSlug && isset($animeLink)) {
+        $animeSlug = fetchAnimeSlug($animeLink);
+        $animeTitle = cleanText(fetchAnimeTitle($animeLink));
+        $animeTitle1 = cleanText(fetchAnimeTitle1($animeLink));
+        $animeImage = fetchAnimeImage($animeLink);
+        $animeInfo = cleanText(fetchAnimeInfo($animeLink));
+        $animeSynopsis = cleanText(fetchAnimeSynopsis($animeLink));
+        $animeScore = fetchAnimeScore($animeLink);
+        $animeVotes = fetchAnimeVotes($animeLink);
+        $youtubeTrailer = fetchYoutubeTrailer($animeLink);
 
-    'anime_info' => $animeInfo,
+        if (!$animeSlug) {
+            return ['error' => 'Não foi possível extrair anime_slug do anime_link.'];
+        }
+    }
 
-    'anime_synopsis' => $animeSynopsis,
+    $episodes = testEpisodes($animeSlug);
 
-    'anime_score' => $animeScore,
+    return [
+        'anime_slug' => $animeSlug,
+        'anime_title' => $animeTitle,
+        'anime_title1' => $animeTitle1,
+        'anime_image' => $animeImage,
+        'anime_info' => $animeInfo,
+        'anime_synopsis' => $animeSynopsis,
+        'anime_score' => $animeScore,
+        'anime_votes' => $animeVotes,
+        'youtube_trailer' => $youtubeTrailer,
+        'episodes' => $episodes,
+        'metadata' => [
+            'op_start' => null,
+            'op_end' => null
+        ],
+        'response' => [
+            'status' => '200',
+            'text' => 'OK'
+        ]
+    ];
+}
 
-    'anime_votes' => $animeVotes,
+$response = getApiResponse($_GET, USE_CACHE, $force);
 
-    'youtube_trailer' => $youtubeTrailer,
-
-    'episodes'   => $episodes,
-
-    'metadata'   => [
-        'op_start' => null,
-
-        'op_end'   => null
-    ],
-
-    'response'   => [
-        'status' => '200',
-
-        'text'   => 'OK'
-    ]
-];
+// Define o código de resposta apropriado em caso de erro
+if (isset($response['error'])) {
+    http_response_code(400);
+}
 
 echo json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
-// Funções abaixo
 function fetchAnimeSlug(string $animeLink): ?string
 {
     $html = @file_get_contents($animeLink);
-
-    if ($html === false) {
-        return null;
-    }
+    if ($html === false) return null;
 
     $dom = new DOMDocument();
     @$dom->loadHTML($html);
 
     $xpath = new DOMXPath($dom);
-
     $nodes = $xpath->query("//div[contains(@class, 'div_video_list')]//a");
 
     foreach ($nodes as $node) {
         $href = $node->getAttribute('href');
-
         if (preg_match('#/animes/([^/]+)/#', $href, $matches)) {
             return $matches[1];
         }
@@ -132,16 +254,12 @@ function fetchAnimeSlug(string $animeLink): ?string
 function fetchAnimeTitle(string $animeLink): ?string
 {
     $html = @file_get_contents($animeLink);
-
-    if ($html === false) {
-        return null;
-    }
+    if ($html === false) return null;
 
     $dom = new DOMDocument();
     @$dom->loadHTML($html);
 
     $xpath = new DOMXPath($dom);
-
     $titleNode = $xpath->query("//h1[contains(@class, 'quicksand400')]")->item(0);
 
     return $titleNode ? trim($titleNode->nodeValue) : null;
@@ -150,16 +268,12 @@ function fetchAnimeTitle(string $animeLink): ?string
 function fetchAnimeTitle1(string $animeLink): ?string
 {
     $html = @file_get_contents($animeLink);
-
-    if ($html === false) {
-        return null;
-    }
+    if ($html === false) return null;
 
     $dom = new DOMDocument();
     @$dom->loadHTML($html);
 
     $xpath = new DOMXPath($dom);
-
     $titleNode = $xpath->query("//h6[contains(@class, 'text-gray')]")->item(0);
 
     return $titleNode ? trim($titleNode->nodeValue) : null;
@@ -168,16 +282,12 @@ function fetchAnimeTitle1(string $animeLink): ?string
 function fetchAnimeImage(string $animeLink): ?string
 {
     $html = @file_get_contents($animeLink);
-
-    if ($html === false) {
-        return null;
-    }
+    if ($html === false) return null;
 
     $dom = new DOMDocument();
     @$dom->loadHTML($html);
 
     $xpath = new DOMXPath($dom);
-
     $imageNode = $xpath->query("//div[contains(@class, 'sub_animepage_img')]//img")->item(0);
 
     return $imageNode ? $imageNode->getAttribute('data-src') : null;
@@ -186,20 +296,15 @@ function fetchAnimeImage(string $animeLink): ?string
 function fetchAnimeInfo(string $animeLink): ?string
 {
     $html = @file_get_contents($animeLink);
-
-    if ($html === false) {
-        return null;
-    }
+    if ($html === false) return null;
 
     $dom = new DOMDocument();
     @$dom->loadHTML($html);
 
     $xpath = new DOMXPath($dom);
-
     $infoNodes = $xpath->query("//div[contains(@class, 'animeInfo')]//a");
 
     $infoTexts = [];
-
     foreach ($infoNodes as $node) {
         $infoTexts[] = trim($node->nodeValue);
     }
@@ -210,16 +315,12 @@ function fetchAnimeInfo(string $animeLink): ?string
 function fetchAnimeSynopsis(string $animeLink): ?string
 {
     $html = @file_get_contents($animeLink);
-
-    if ($html === false) {
-        return null;
-    }
+    if ($html === false) return null;
 
     $dom = new DOMDocument();
     @$dom->loadHTML($html);
 
     $xpath = new DOMXPath($dom);
-
     $synopsisNode = $xpath->query("//div[contains(@class, 'divSinopse')]//span[contains(@class, 'spanAnimeInfo')]")->item(0);
 
     return $synopsisNode ? trim($synopsisNode->nodeValue) : null;
@@ -228,16 +329,12 @@ function fetchAnimeSynopsis(string $animeLink): ?string
 function fetchAnimeScore(string $animeLink): ?string
 {
     $html = @file_get_contents($animeLink);
-
-    if ($html === false) {
-        return null;
-    }
+    if ($html === false) return null;
 
     $dom = new DOMDocument();
     @$dom->loadHTML($html);
 
     $xpath = new DOMXPath($dom);
-
     $scoreNode = $xpath->query("//h4[@id='anime_score']")->item(0);
 
     return $scoreNode ? trim($scoreNode->nodeValue) : null;
@@ -246,16 +343,12 @@ function fetchAnimeScore(string $animeLink): ?string
 function fetchAnimeVotes(string $animeLink): ?string
 {
     $html = @file_get_contents($animeLink);
-
-    if ($html === false) {
-        return null;
-    }
+    if ($html === false) return null;
 
     $dom = new DOMDocument();
     @$dom->loadHTML($html);
 
     $xpath = new DOMXPath($dom);
-
     $votesNode = $xpath->query("//h6[@id='anime_votos']")->item(0);
 
     return $votesNode ? trim($votesNode->nodeValue) : null;
@@ -264,20 +357,18 @@ function fetchAnimeVotes(string $animeLink): ?string
 function fetchYoutubeTrailer(string $animeLink): ?string
 {
     $html = @file_get_contents($animeLink);
-
-    if ($html === false) {
-        return null;
-    }
+    if ($html === false) return null;
 
     $dom = new DOMDocument();
     @$dom->loadHTML($html);
 
     $xpath = new DOMXPath($dom);
-
     $trailerNode = $xpath->query("//div[@id='iframe-trailer']//iframe")->item(0);
 
     return $trailerNode ? $trailerNode->getAttribute('data-src') : null;
 }
+
+ //Testa os episódios do anime até o máximo especificado. o presset é 200
 
 function testEpisodes(string $animeSlug, int $maxEpisodes = 200): array
 {
@@ -285,7 +376,6 @@ function testEpisodes(string $animeSlug, int $maxEpisodes = 200): array
 
     for ($episode = 1; $episode <= $maxEpisodes; $episode++) {
         $url = "https://animefire.plus/video/$animeSlug/$episode";
-
         $response = @file_get_contents($url);
 
         if ($response === false) {
@@ -299,15 +389,60 @@ function testEpisodes(string $animeSlug, int $maxEpisodes = 200): array
         }
 
         if (!empty($json['data'])) {
-            $formattedData = array_map(function ($item) {
-                return [
-                    'url'        => formatUrl($item['src']),
+            $hasGoogleVideo = false;
+            foreach ($json['data'] as $item) {
+                if (strpos($item['src'], 'googlevideo.com') !== false) {
+                    $hasGoogleVideo = true;
+                    break;
+                }
+            }
 
-                    'resolution' => $item['label'],
+            if ($hasGoogleVideo) {
+                $episodePageUrl = "https://animefire.plus/animes/$animeSlug/$episode";
+                $bloggerUrl = fetchBloggerIframeUrl($episodePageUrl);
 
-                    'status'     => 'ONLINE'
-                ];
-            }, $json['data']);
+                if ($bloggerUrl) {
+                    $formattedData = array_map(function ($item) use ($bloggerUrl) {
+                        if (strpos($item['src'], 'googlevideo.com') !== false) {
+                            return [
+                                'url' => $bloggerUrl,
+                                'resolution' => $item['label'],
+                                'status' => 'ONLINE'
+                            ];
+                        } else {
+                            return [
+                                'url' => formatUrl($item['src']),
+                                'resolution' => $item['label'],
+                                'status' => 'ONLINE'
+                            ];
+                        }
+                    }, $json['data']);
+                } else {
+                    $formattedData = array_map(function ($item) {
+                        if (strpos($item['src'], 'googlevideo.com') !== false) {
+                            return [
+                                'url' => null,
+                                'resolution' => $item['label'],
+                                'status' => 'OFFLINE'
+                            ];
+                        } else {
+                            return [
+                                'url' => formatUrl($item['src']),
+                                'resolution' => $item['label'],
+                                'status' => 'ONLINE'
+                            ];
+                        }
+                    }, $json['data']);
+                }
+            } else {
+                $formattedData = array_map(function ($item) {
+                    return [
+                        'url' => formatUrl($item['src']),
+                        'resolution' => $item['label'],
+                        'status' => 'ONLINE'
+                    ];
+                }, $json['data']);
+            }
 
             $results[] = ['episode' => $episode, 'data' => $formattedData];
         } else {
@@ -318,6 +453,26 @@ function testEpisodes(string $animeSlug, int $maxEpisodes = 200): array
     return $results;
 }
 
+function fetchBloggerIframeUrl(string $episodePageUrl): ?string
+{
+    $html = @file_get_contents($episodePageUrl);
+    if ($html === false) return null;
+
+    $dom = new DOMDocument();
+    @$dom->loadHTML($html);
+
+    $xpath = new DOMXPath($dom);
+    $iframeNode = $xpath->query("//iframe[contains(@src, 'blogger.com')]")->item(0);
+
+    return $iframeNode ? $iframeNode->getAttribute('src') : null;
+}
+
+/**
+ * Limpa o texto removendo caracteres indesejados.
+ *
+ * @param string $text
+ * @return string
+ */
 function cleanText(string $text): string
 {
     $unwanted = [
@@ -339,7 +494,14 @@ function cleanText(string $text): string
     return strtr($text, $unwanted);
 }
 
+/**
+ * Formata a URL removendo barras invertidas.
+ *
+ * @param string $url
+ * @return string
+ */
 function formatUrl(string $url): string
 {
     return str_replace(["\\/", "\\"], "/", $url);
 }
+?>
