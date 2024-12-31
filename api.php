@@ -476,8 +476,12 @@ function fetchBloggerIframeUrl(string $episodePageUrl): ?string
  * @param string $text
  * @return string
  */
-function cleanText(string $text): string
+function cleanText(?string $text): string
 {
+    if ($text === null) {
+        return '';
+    }
+
     $unwanted = [
         'ç' => 'c', 'Ç' => 'C',
         'á' => 'a', 'Á' => 'A',
