@@ -278,20 +278,88 @@ footer img {
                 <button id="download-m3u">🗎 Baixar playlist M3U para VLC</button>
         </div>
         </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                // Função para substituir o player no HTML
+                function replacePlayerInHTML(html) {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+            
+                    const videoContainer = doc.querySelector('.video-container');
+                    if (videoContainer) {
+                        const iframe = document.createElement('iframe');
+                        iframe.src = ''; 
+                        iframe.id = 'player-iframe'; 
+                        iframe.width = '100%';
+                        iframe.height = '400';
+                        iframe.style.border = 'none';
+                        iframe.allowFullscreen = true;
+            
+                        videoContainer.innerHTML = '';
+                        videoContainer.appendChild(iframe);
+            
+                        console.log('Player substituído no HTML por um iframe com placeholder.');
+                    } else {
+                        console.warn('Player padrão não encontrado no HTML.');
+                    }
+            
+                    return doc.documentElement.outerHTML;
+                }
+            
+                // Sobrescrever a lógica de geração do blob
+                const originalCreateObjectURL = URL.createObjectURL;
+            
+                window.URL.createObjectURL = function (blob) {
+                    if (blob.type === 'text/html') {
+                        const reader = new FileReader();
+                        const newWindow = window.open('about:blank', '_blank');
+                        reader.onload = function () {
+                            const originalHTML = reader.result;
+                            const updatedHTML = replacePlayerInHTML(originalHTML);
+                            const updatedBlob = new Blob([updatedHTML], { type: 'text/html' });
+                            const updatedBlobUrl = originalCreateObjectURL(updatedBlob);
+                            if (newWindow) {
+                                newWindow.location.href = updatedBlobUrl;
+                                console.log('Blob atualizado gerado e carregado na nova aba:', updatedBlobUrl);
+                            } else {
+                                console.error('Não foi possível abrir a nova aba.');
+                            }
+                        };
+            
+                        reader.readAsText(blob);
+                        return ''; 
+                    }
+            
+                    return originalCreateObjectURL(blob);
+                };
+                document.addEventListener('click', function (event) {
+                    if (event.target.tagName === 'BUTTON' && event.target.hasAttribute('onclick')) {
+                        const onclickAttr = event.target.getAttribute('onclick');
+                        const urlMatch = onclickAttr.match(/changeEpisode\\(['"](.*?)['"]\\)/);
+                        if (urlMatch) {
+                            const episodeUrl = urlMatch[1];
+                            const iframe = document.getElementById('player-iframe');
+                            if (iframe) {
+                                iframe.src = episodeUrl; 
+                                console.log('Atualizando iframe com URL:', episodeUrl);
+                            }
+                        }
+                    }
+                });
+            
+                console.log('Interceptação de blobs configurada e suporte para iframe configurado.');
+            });
+        </script>
 
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 const episodes = <?php echo json_encode($data['episodes']); ?>;
-        
-                // Obter todas as resoluções disponíveis
                 const resolutions = new Set();
                 episodes.forEach(ep => {
                     ep.data.forEach(resolutionData => {
                         resolutions.add(resolutionData.resolution);
                     });
                 });
-        
-                // Preencher o seletor de qualidade
                 const qualitySelect = document.getElementById('quality');
                 resolutions.forEach(resolution => {
                     const option = document.createElement('option');
@@ -299,6 +367,7 @@ footer img {
                     option.textContent = resolution;
                     qualitySelect.appendChild(option);
                 });
+				
         
                 // Gerar botões de episódios com base na qualidade selecionada
                 document.getElementById('generate-player').addEventListener('click', function () {
@@ -314,6 +383,7 @@ footer img {
             </button>`;
                         }
                     });
+					
         
                     const blobContent = `
                         <!DOCTYPE html>
@@ -412,28 +482,38 @@ footer img {
                             <!-- Fluid Player Script -->
                             <script src="https://cdn.fluidplayer.com/v3/current/fluidplayer.min.js"><\/script>
                             <script>
-        					document.addEventListener('DOMContentLoaded', function () {
-            const videoElement = document.getElementById('player-video');
-            const episodeButtons = document.querySelectorAll('.episodes-container button');
-        
-            if (!videoElement) {
-                console.error('Elemento de vídeo inicial não encontrado!');
-                return;
-            }
-        
-            // Função para trocar o episódio
-            function changeEpisode(url) {
-                if (!videoElement) {
-                    console.error('Elemento de vídeo não encontrado!');
-                    return;
-                }
-        
+    document.addEventListener('DOMContentLoaded', function () {
+        let currentPlayer = null;
+        const iframeElement = document.getElementById('player-iframe'); // Suporte ao iframe, importante para usar links blogger.com
+        const videoElement = document.createElement('video'); 
+        videoElement.setAttribute('id', 'player-video');
+        videoElement.setAttribute('controls', 'controls');
+        videoElement.style.width = '100%';
+        videoElement.style.borderRadius = '10px';
+        document.querySelector('.video-container').appendChild(videoElement);
+
+        const episodeButtons = document.querySelectorAll('.episodes-container button');
+
+        // Função para verificar se a URL é um link de vídeo direto ou uma página Blogger
+        function isVideoUrl(url) {
+            const videoExtensions = ['.mp4', '.webm', '.ogg', '.m3u8'];
+            return videoExtensions.some(ext => url.includes(ext));
+        }
+        window.changeEpisode = function (url) {
+            if (url.includes('blogger.com')) {
+                // Carregar no iframe
+                videoElement.style.display = 'none';
+                iframeElement.style.display = 'block'; 
+                iframeElement.src = url;
+                console.log('URL carregada no iframe:', url);
+            } else if (isVideoUrl(url)) {
+                iframeElement.style.display = 'none';
+                videoElement.style.display = 'block';
                 videoElement.src = url;
-        
                 videoElement.load();
-        
-                // Inicializa o Fluid Player
-                if (!currentPlayer) {
+                if (currentPlayer) {
+                    currentPlayer.play();
+                } else {
                     currentPlayer = fluidPlayer('player-video', {
                         layoutControls: {
                             controlBar: {
@@ -446,7 +526,7 @@ footer img {
                                 height: null,
                                 width: null,
                             },
-                            autoPlay: true,
+                            autoPlay: false,
                             mute: true,
                             allowTheatre: true,
                             playPauseAnimation: true,
@@ -454,8 +534,20 @@ footer img {
                             allowDownload: true,
                             playButtonShowing: true,
                             fillToContainer: false,
-                            primaryColor: "#00ced1",
-                            posterImage: "https://i.imgur.com/ZmxUfDA.jpeg",
+                            primaryColor: "#5288e5",
+                            posterImage: "https://i.imgur.com/9NtMX19.jpeg",
+							posterImageSize: "cover",
+                            roundedCorners:         10,
+                            logo: {
+                                imageUrl:           "https://i.imgur.com/KmA7aUE.png",
+                                imageMargin: '5px',
+                                position:           'top left',
+                                clickUrl:           null,
+                                opacity:            0.3
+                            },
+                            miniPlayer: {
+                                enabled: false,
+                            },
                         },
                         vastOptions: {
                             adList: [],
@@ -463,123 +555,28 @@ footer img {
                             adCTATextPosition: "",
                         },
                     });
-                } else {
-                    currentPlayer.play();
                 }
-            }
-        
-            // Simula o clique no botão do episódio 1. Isto garante que o ep1 seja carregado sempre.
-            function simulateEpisode1Click() {
-                const episode1Button = episodeButtons[0];
-                if (episode1Button) {
-                    episode1Button.click();
-                } else {
-                    console.error('Botão do episódio 1 não encontrado!');
-                }
-            }
-        
-            
-            episodeButtons.forEach((button, index) => {
-                button.addEventListener('click', function () {
-                    const episodeData = episodes[index]?.data?.[0]?.url;
-                    if (episodeData) {
-                        changeEpisode(episodeData);
-                    }
-                });
-            });
-        
-            
-            simulateEpisode1Click();
-        });
-        					
-        let currentPlayer = null; 
-        
-        function changeEpisode(url) {
-            const videoElement = document.getElementById('player-video');
-        
-            if (!videoElement) {
-                console.error('Elemento de vídeo não encontrado!');
-                return;
-            }
-        
-            videoElement.src = url;
-        
-            videoElement.load();
-            if (currentPlayer) {
-                currentPlayer.play();
+                console.log('Episódio carregado no player de vídeo:', url);
             } else {
-                currentPlayer = fluidPlayer('player-video', {
-                    layoutControls: {
-                        controlBar: {
-                            autoHideTimeout: 3,
-                            animated: true,
-                            autoHide: true,
-                        },
-                        htmlOnPauseBlock: {
-                            html: null,
-                            height: null,
-                            width: null,
-                        },
-                        autoPlay: false, 
-                        mute: true,
-                        allowTheatre: true,
-                        playPauseAnimation: true,
-                        playbackRateEnabled: false,
-                        allowDownload: true,
-                        playButtonShowing: true,
-                        fillToContainer: false,
-                        primaryColor: "#00ced1",
-                        posterImage: "your-real-file-here.png",
-                    },
-                    vastOptions: {
-                        adList: [],
-                        adCTAText: false,
-                        adCTATextPosition: "",
-                    },
-                });
+                console.error('URL não reconhecida como vídeo ou página compatível.');
+            }
+        };
+        episodeButtons.forEach((button) => {
+            button.addEventListener('click', function () {
+                const url = button.getAttribute('onclick').match(/changeEpisode\(['"](.*?)['"]\)/)[1];
+                window.changeEpisode(url);
+            });
+        });
+        function simulateEpisode1Click() {
+            const episode1Button = episodeButtons[0];
+            if (episode1Button) {
+                episode1Button.click();
+            } else {
+                console.error('Botão do episódio 1 não encontrado!');
             }
         }
-        document.addEventListener('DOMContentLoaded', function () {
-            const videoElement = document.getElementById('player-video');
-        
-            if (!videoElement) {
-                console.error('Elemento de vídeo inicial não encontrado!');
-                return;
-            }
-            currentPlayer = fluidPlayer('player-video', {
-                layoutControls: {
-                    controlBar: {
-                        autoHideTimeout: 3,
-                        animated: true,
-                        autoHide: true,
-                    },
-                    htmlOnPauseBlock: {
-                        html: null,
-                        height: null,
-                        width: null,
-                    },
-                    autoPlay: false,
-                    mute: true,
-                    allowTheatre: true,
-                    playPauseAnimation: true,
-                    playbackRateEnabled: false,
-                    allowDownload: true,
-                    playButtonShowing: true,
-                    fillToContainer: false,
-                    primaryColor: "#00ced1",
-                    posterImage: "https://i.imgur.com/ZmxUfDA.jpeg",
-                },
-                vastOptions: {
-                    adList: [],
-                    adCTAText: false,
-                    adCTATextPosition: "",
-                },
-            });
-        });
-        
-        
-        
-        
+        setTimeout(simulateEpisode1Click, 100);
+    });
                             <\/script>
                         </body>
                         </html>
@@ -587,7 +584,6 @@ footer img {
         
                     const blob = new Blob([blobContent], { type: 'text/html' });
                     const blobUrl = URL.createObjectURL(blob);
-                    window.open(blobUrl, '_blank');
                 });
         
                 // Exibir a resposta da API em uma caixa de texto que pode ser fechada
@@ -626,6 +622,80 @@ footer img {
                     downloadLink.click();
                 });
             });
+			document.addEventListener('DOMContentLoaded', function () {
+    // Substituir botões com links do Blogger por iframes
+    const replaceBloggerButtonsWithIframes = () => {
+        const buttons = document.querySelectorAll('button');
+        
+        buttons.forEach(button => {
+            const onClickAttr = button.getAttribute('onclick');
+            if (onClickAttr && onClickAttr.includes('changeEpisode(')) {
+                const urlMatch = onClickAttr.match(/changeEpisode\\(['\"](.*?)['\"]\\)/);
+                if (urlMatch && urlMatch[1].includes('blogger.com/video.g?token=')) {
+                    const bloggerUrl = urlMatch[1];
+
+                    // Criar iframe substituindo o botão
+                    const iframe = document.createElement('iframe');
+                    iframe.src = bloggerUrl;
+                    iframe.width = '100%';
+                    iframe.height = '400';
+                    iframe.style.border = 'none';
+                    iframe.allowFullscreen = true;
+
+                    // Substituir o botão pelo iframe
+                    button.parentNode.replaceChild(iframe, button);
+                }
+            }
+        });
+    };
+
+    // Executar a substituição após a geração inicial dos botões
+    document.getElementById('generate-player').addEventListener('click', function () {
+        setTimeout(replaceBloggerButtonsWithIframes, 100); // Pequeno delay para garantir que os botões foram criados
+    });
+});
+document.addEventListener('DOMContentLoaded', function () {
+    // Função para substituir botões com links do Blogger por iframes
+    const replaceBloggerButtonsWithIframes = (parentNode) => {
+        const buttons = parentNode.querySelectorAll('button');
+        buttons.forEach(button => {
+            const onClickAttr = button.getAttribute('onclick');
+            if (onClickAttr && onClickAttr.includes('changeEpisode(')) {
+                const urlMatch = onClickAttr.match(/changeEpisode\\(['\"](.*?)['\"]\\)/);
+                if (urlMatch && urlMatch[1].includes('blogger.com/video.g?token=')) {
+                    const bloggerUrl = urlMatch[1];
+
+                    // Criar iframe substituindo o botão
+                    const iframe = document.createElement('iframe');
+                    iframe.src = bloggerUrl;
+                    iframe.width = '100%';
+                    iframe.height = '400';
+                    iframe.style.border = 'none';
+                    iframe.allowFullscreen = true;
+
+                    // Substituir o botão pelo iframe
+                    button.parentNode.replaceChild(iframe, button);
+                }
+            }
+        });
+    };
+
+    // Configurar um MutationObserver para observar mudanças no DOM
+    const observer = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        replaceBloggerButtonsWithIframes(node);
+                    }
+                });
+            }
+        });
+    });
+
+    // Observar o body para mudanças no DOM
+    observer.observe(document.body, { childList: true, subtree: true });
+});
         </script>
 
         <?php endif; ?>
