@@ -208,7 +208,7 @@ function generateSearchInterface($initialResults = []) {
         </style>
         <script>
             async function searchAnimes() {
-                const query = document.getElementById('searchQuery').value;
+                const query = document.getElementById('searchQuery').value.toLowerCase();
                 if (!query) return alert('Digite algo para buscar.');
 
                 const loader = document.getElementById('loader');
