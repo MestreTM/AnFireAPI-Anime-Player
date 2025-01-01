@@ -111,7 +111,6 @@ curl "localhost/api.php?api_key=SUA_API_KEY&anime_link=https://animefire.plus/an
 ---
 
 # AnFire_Player.php - O front end mais CREMOSO para testes <3
-![imagem](https://i.imgur.com/JODpL6c.png)
 
 ### 1. Reprodução de Vídeos
 - Seleção de episódios diretamente na interface.
