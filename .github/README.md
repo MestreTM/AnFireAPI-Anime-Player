@@ -201,6 +201,6 @@ if ($data) {
 
 ## Licença
 
-Este projeto é open-source. Consulte o [GitHub](https://github.com/MestreTM/AnFireAPI) para mais detalhes.
+Este projeto é distribuído sob a licença MIT. Veja o arquivo LICENSE para mais detalhes.
 
 ---
