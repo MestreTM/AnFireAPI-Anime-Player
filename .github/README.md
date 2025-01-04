@@ -3,13 +3,24 @@
 ![imagem](https://i.imgur.com/YFFnp7E.png)
 
 
-Este projeto consiste em dois componentes principais: `api.php` e `AnFire_Player.php`. Basicamente faz uma varredura do site e coleta todas as informações gostosas. Com ele você pode ver animes sem anuncios e com custo zero.
+Este projeto consiste em três componentes principais: `index.php`, `api.php` e `AnFire_Player.php`. Basicamente faz uma varredura do site e coleta todas as informações gostosas. Com ele você pode ver animes sem anuncios e com custo zero.
+Agora com uma interface (index) para encontrar os novos animes recém adicionados ou buscá-los, tudo diretamente do seu navegador!
 
 ---
 # API Documentation
 
 ## Descrição
 Esta API foi desenvolvida para fornecer informações relacionadas a animes. Ela permite buscar informações de animes utilizando parâmetros específicos, como `anime_slug` ou `anime_link`.
+
+---
+# Novatos ou leigos:
+
+Você pode usar o [Laragon](https://laragon.org/download/) para rodar o script e rodar em seu navegador (`http://localhost/`). [Veja um vídeo de como utilizar o Laragon.](https://www.youtube.com/watch?v=biSRp8riEG0)
+
+### a instalação é complicada?
+Como o script agora tem uma interface gráfica fica facil para qualquer um utilizar sem muitas configurações, basta [baixar o último release](https://github.com/MestreTM/AnFireAPI/releases) e aplicar na pasta WWW do laragon, por exemplo.
+
+![imagem](https://i.imgur.com/Xw3IbMd.png)
 
 ---
 
