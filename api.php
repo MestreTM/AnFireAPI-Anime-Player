@@ -11,15 +11,15 @@ ini_set('display_errors', 1);
 header('Content-Type: application/json');
 
 // Configurações do Banco de Dados e Cache
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'teste');
-define('DB_USER', 'root');
-define('DB_PASS', '123');
+define('DB_HOST', '');
+define('DB_NAME', '');
+define('DB_USER', '');
+define('DB_PASS', '');
 
-define('USE_CACHE', true);       // Habilita ou desabilita o uso de cache (BANCO DE DADOS)
+define('USE_CACHE', false);       // Habilita ou desabilita o uso de cache (BANCO DE DADOS)
 
 // Configuração da API Key
-define('API_KEY', '159753');     
+define('API_KEY', 'SUA_API_KEY');     
 
 
 // Estabelece a conexão com o banco de dados usando PDO.
