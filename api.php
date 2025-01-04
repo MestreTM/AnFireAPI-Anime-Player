@@ -12,17 +12,17 @@ header('Content-Type: application/json');
 
 // Configurações do Banco de Dados e Cache
 define('DB_HOST', 'localhost');
-define('DB_NAME', '');
-define('DB_USER', '');
-define('DB_PASS', '');
+define('DB_NAME', 'teste');
+define('DB_USER', 'root');
+define('DB_PASS', '123');
 
-define('USE_CACHE', false);       // Habilita ou desabilita o uso de cache (BANCO DE DADOS)
+define('USE_CACHE', true);       // Habilita ou desabilita o uso de cache (BANCO DE DADOS)
 
 // Configuração da API Key
-define('API_KEY', 'SUA_API_AQUI');     
+define('API_KEY', '159753');     
 
 
- // Estabelece a conexão com o banco de dados usando PDO.
+// Estabelece a conexão com o banco de dados usando PDO.
 
 function getDatabaseConnection(): PDO
 {
@@ -40,7 +40,7 @@ function getDatabaseConnection(): PDO
     }
 }
 
- // Cria a tabela 'api_cache' se ela não existir.
+// Cria a tabela 'api_cache' se ela não existir.
 
 function createCacheTableIfNotExists(PDO $pdo): void
 {
@@ -87,9 +87,9 @@ if (isset($_GET['anime_link'])) {
     }
 }
 
-// Obtém o parâmetro 'force', padrão para false. Isto faz a api buscar e regravar os dados mesmo já existindo no banco de dados.
-
+// Obtém os parâmetros 'force' e 'update', padrão para false. 'force' força a atualização completa, 'update' faz atualização incremental.
 $force = isset($_GET['force']) ? filter_var($_GET['force'], FILTER_VALIDATE_BOOLEAN) : false;
+$update = isset($_GET['update']) ? filter_var($_GET['update'], FILTER_VALIDATE_BOOLEAN) : false;
 
 $animeSlug = $_GET['anime_slug'] ?? null;
 $animeTitle = null;
@@ -101,9 +101,9 @@ $animeScore = null;
 $animeVotes = null;
 $youtubeTrailer = null;
 
-function getApiResponse(array $params, bool $useCache, bool $force): array
+function getApiResponse(array $params, bool $useCache, bool $force, bool $update): array
 {
-    if ($useCache && !$force) {
+    if ($useCache) {
         $pdo = getDatabaseConnection();
         createCacheTableIfNotExists($pdo);
 
@@ -111,12 +111,62 @@ function getApiResponse(array $params, bool $useCache, bool $force): array
         $animeLink = $params['anime_link'] ?? null;
 
         $cachedResponse = getCachedResponse($pdo, $animeSlug, $animeLink);
+
         if ($cachedResponse) {
-            return json_decode($cachedResponse, true);
+            $cachedData = json_decode($cachedResponse, true);
+
+            if ($update) {
+                // Se anime_slug não foi fornecido, mas está no cache, use-o
+                if (!$animeSlug && isset($cachedData['anime_slug'])) {
+                    $animeSlug = $cachedData['anime_slug'];
+                }
+
+                if (!$animeSlug) {
+                    return ['error' => 'anime_slug não fornecido e não encontrado no cache.'];
+                }
+
+                // Encontrar o último episódio existente
+                $lastEpisode = 0;
+                foreach ($cachedData['episodes'] as $ep) {
+                    if ($ep['episode'] > $lastEpisode) {
+                        $lastEpisode = $ep['episode'];
+                    }
+                }
+
+                // Buscar novos episódios a partir do próximo episódio
+                $newEpisodes = testEpisodes($animeSlug, $lastEpisode + 1);
+
+                if (!empty($newEpisodes)) {
+                    // Mesclar novos episódios com os existentes
+                    $cachedData['episodes'] = array_merge($cachedData['episodes'], $newEpisodes);
+
+                    // Coletar os números dos novos episódios
+                    $new_episode_numbers = array_map(function($ep) {
+                        return $ep['episode'];
+                    }, $newEpisodes);
+
+                    // Adicionar informações sobre os novos episódios
+                    $cachedData['new_episodes'] = $new_episode_numbers;
+
+                    // Atualizar o cache com os novos dados
+                    storeCacheResponse($pdo, $animeSlug, $animeLink, json_encode($cachedData));
+
+                    return $cachedData;
+                } else {
+                    // Nenhum novo episódio encontrado
+                    $cachedData['new_episodes'] = [];
+                    return $cachedData;
+                }
+            }
+
+            if (!$force) {
+                // Retornar dados do cache
+                return $cachedData;
+            }
         }
     }
 
-    // Processa a solicitação diretamente, sem cache
+    // Processa a solicitação diretamente
     $response = processApiRequest($params);
 
     if ($useCache && !isset($response['error'])) {
@@ -224,7 +274,7 @@ function processApiRequest(array $params): array
     ];
 }
 
-$response = getApiResponse($_GET, USE_CACHE, $force);
+$response = getApiResponse($_GET, USE_CACHE, $force, $update);
 
 // Define o código de resposta apropriado em caso de erro
 if (isset($response['error'])) {
@@ -368,16 +418,16 @@ function fetchYoutubeTrailer(string $animeLink): ?string
     $xpath = new DOMXPath($dom);
     $trailerNode = $xpath->query("//div[@id='iframe-trailer']//iframe")->item(0);
 
-    return $trailerNode ? $trailerNode->getAttribute('data-src') : null;
+    return $trailerNode ? $trailerNode->getAttribute('src') : null;
 }
 
- //Testa os episódios do anime até o máximo especificado. o presset é 200
+// Testa os episódios do anime a partir de um número específico até o máximo especificado. O padrão é 200.
 
-function testEpisodes(string $animeSlug, int $maxEpisodes = 200): array
+function testEpisodes(string $animeSlug, int $startEpisode = 1, int $maxEpisodes = 200): array
 {
     $results = [];
 
-    for ($episode = 1; $episode <= $maxEpisodes; $episode++) {
+    for ($episode = $startEpisode; $episode <= $maxEpisodes; $episode++) {
         $url = "https://animefire.plus/video/$animeSlug/$episode";
         $response = @file_get_contents($url);
 
