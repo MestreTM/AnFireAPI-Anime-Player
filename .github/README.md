@@ -8,10 +8,6 @@ Agora com uma interface (index) para encontrar os novos animes recém adicionado
 
 ---
 
-## Agora você pode baixar o EXE e rodar DIRETAMENTE NO SEU PC!
-https://github.com/MestreTM/AnFireAPI/releases/
-
----
 
 ![imagem](https://i.imgur.com/Xw3IbMd.png)
 
